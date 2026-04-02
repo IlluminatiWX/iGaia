@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>iGaia - Native Flash Client</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin:0; padding:0; height:100%; overflow:hidden; background:#1a1a1a; color:#fff; font-family:Arial, sans-serif; }
+    body { display:flex; flex-direction:column; }
+
+    #titlebar {
+      height: 40px;
+      background: #2c2c2c;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      border-bottom: 1px solid #444;
+    }
+
+    #draggable { flex: 1; padding-left: 10px; font-weight: bold; -webkit-app-region: drag; }
+    
+    .toolbar-buttons { display: flex; gap: 6px; margin: 0 10px; }
+    .toolbar-buttons button {
+      padding: 6px 14px;
+      background: #3a3a3a;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      -webkit-app-region: no-drag;
+    }
+    .toolbar-buttons button:hover { background: #505050; }
+
+    .window-controls { display: flex; gap: 6px; }
+    .window-controls button {
+      width: 30px; height: 30px;
+      background: #3a3a3a;
+      border: none;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+      border-radius: 4px;
+      -webkit-app-region: no-drag;
+    }
+    .window-controls button:hover { background: #666; }
+    .close:hover { background: #e81123 !important; }
+
+    #content { flex: 1; width: 100%; border: none; }
+  </style>
+</head>
+<body>
+  <div id="titlebar">
+    <div id="draggable">iGaia - Alpha 0.1.2</div>
+    
+    <div class="toolbar-buttons">
+      <button onclick="navigateTo('https://www.gaiaonline.com/')">Home</button>
+      <button onclick="navigateTo('https://www.gaiaonline.com/forum/')">Forums</button>
+      <button onclick="navigateTo('https://www.gaiaonline.com/mygaia/')">My Gaia</button>
+      <button onclick="navigateTo('https://www.gaiaonline.com/games/')">Games</button>
+      <button onclick="navigateTo('https://www.gaiaonline.com/launch/rally')">Rally</button>
+      <button onclick="navigateTo('https://www.gaiaonline.com/inventory/')">Inventory</button>
+    </div>
+
+    <div class="window-controls">
+      <button onclick="minimizeWindow()">–</button>
+      <button onclick="maximizeWindow()">□</button>
+      <button class="close" onclick="closeWindow()">×</button>
+    </div>
+  </div>
+
+  <webview id="content" src="https://www.gaiaonline.com/" allowpopups plugins style="flex:1;"></webview>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+
+    function navigateTo(url) {
+      document.getElementById('content').src = url;
+    }
+
+    function minimizeWindow() { ipcRenderer.send('window-minimize'); }
+    function maximizeWindow() { ipcRenderer.send('window-maximize'); }
+    function closeWindow()   { ipcRenderer.send('window-close'); }
+  </script>
+</body>
+</html>
