@@ -10,7 +10,7 @@
       line-height: 1.7;
       max-width: 920px;
       margin: 40px auto;
-      padding: 20px;
+      padding: 30px;
       background: #0f0f0f;
       color: #ddd;
     }
@@ -19,7 +19,7 @@
     }
     h1 { 
       border-bottom: 3px solid #9c27b0; 
-      padding-bottom: 12px; 
+      padding-bottom: 15px; 
     }
     pre {
       background: #1e1e1e;
@@ -39,7 +39,7 @@
       background: #3d2a00;
       border-left: 6px solid #ff9800;
       padding: 16px;
-      margin: 20px 0;
+      margin: 25px 0;
       border-radius: 4px;
     }
     table {
@@ -63,28 +63,28 @@
     footer {
       text-align: center;
       color: #666;
-      margin-top: 50px;
+      margin-top: 60px;
     }
   </style>
 </head>
 <body>
 
   <h1>iGaia Plugin Development Guide</h1>
-  <p><strong>Version 1.0</strong> — For iGaia Native Flash Client</p>
+  <p><strong>Version 1.1</strong> — Updated for built-in Theme Editor + Plugin Manager</p>
 
   <div class="warning">
-    <strong>⚠️ Important:</strong> Plugins have full access to the renderer process. 
-    Only install plugins from sources you trust.
+    <strong>⚠️ Security Note:</strong> Plugins run with full access to the renderer process. 
+    Only install plugins from trusted sources.
   </div>
 
-  <h2>1. How to Install a Plugin</h2>
+  <h2>1. Installing Plugins</h2>
   <ol>
-    <li>Run iGaia at least once (it creates the necessary folders).</li>
+    <li>Run iGaia at least once to create the plugins folder.</li>
     <li>Open the plugins folder:<br>
       <code>%APPDATA%\iGaia\plugins\</code>
     </li>
-    <li>Create a new folder for your plugin (example: <code>my-awesome-plugin</code>).</li>
-    <li>Inside that folder, create two files:
+    <li>Create a new folder for your plugin (e.g. <code>my-cool-plugin</code>).</li>
+    <li>Inside that folder, add these two files:
       <ul>
         <li><code>manifest.json</code></li>
         <li><code>index.js</code></li>
@@ -95,20 +95,19 @@
 
   <h2>2. Plugin Folder Structure</h2>
   <pre>
-iGaia/
-└── plugins/
-    └── my-awesome-plugin/
-        ├── manifest.json
-        └── index.js
+%APPDATA%\iGaia\plugins\
+└── my-cool-plugin\
+    ├── manifest.json
+    └── index.js
   </pre>
 
-  <h2>3. manifest.json</h2>
+  <h2>3. manifest.json Example</h2>
 ```json
 {
-  "name": "My Awesome Plugin",
-  "description": "Adds cool features to iGaia",
+  "name": "My Cool Plugin",
+  "description": "Adds useful features to iGaia",
   "version": "1.0.0",
-  "author": "Your Username"
+  "author": "Your Name"
 }
 ```
 
@@ -116,51 +115,61 @@ iGaia/
 ```javascript
 module.exports = {
   init: (api, manifest) => {
-    console.log(`[${manifest.name}] Plugin loaded!`);
+    console.log(`[${manifest.name}] Plugin loaded successfully!`);
 
     // Add a button to the toolbar
     api.addToolbarButton({
-      label: "🚀 My Button"
+      label: "🚀 My Feature"
     });
   }
 };
 ```
 
-  <h2>5. Available API Methods</h2>
-  <table>
-    <tr><th>Method</th><th>Description</th><th>Example</th></tr>
-    <tr><td><code>api.addToolbarButton(options)</code></td><td>Add a button to the toolbar</td><td><code>api.addToolbarButton({ label: "⚙️ Settings" })</code></td></tr>
-    <tr><td><code>api.injectScript(code)</code></td><td>Run JavaScript on the Gaia page</td><td><code>api.injectScript('alert("Hello!")')</code></td></tr>
-    <tr><td><code>api.navigateTo(url)</code></td><td>Navigate to a URL</td><td><code>api.navigateTo('https://www.gaiaonline.com/')</code></td></tr>
-    <tr><td><code>api.reload()</code></td><td>Reload current page</td><td><code>api.reload()</code></td></tr>
-    <tr><td><code>api.log(msg)</code></td><td>Print to console</td><td><code>api.log('Hello from plugin')</code></td></tr>
-    <tr><td><code>api.alert(msg)</code></td><td>Show popup message</td><td><code>api.alert('Plugin message')</code></td></tr>
-  </table>
+  <h2>5. Available Plugin API (Current)</h2>
 
-  <h2>6. Full Example: Auto Refresh Button</h2>
+  | Method                        | Description                                      | Example |
+  |-------------------------------|--------------------------------------------------|--------|
+  | `api.addToolbarButton(options)` | Add button to toolbar                           | `api.addToolbarButton({ label: "🔥 Test" })` |
+  | `api.injectScript(code)`      | Run JS on the Gaia page                          | `api.injectScript('alert("Hello!")')` |
+  | `api.navigateTo(url)`         | Navigate to a URL                                | `api.navigateTo('https://www.gaiaonline.com/')` |
+  | `api.reload()`                | Reload current page                              | `api.reload()` |
+  | `api.log(msg)`                | Print to console                                 | `api.log('Something happened')` |
+  | `api.alert(msg)`              | Show popup message                               | `api.alert('Hello from plugin!')` |
+
+  <h2>6. Full Example Plugin</h2>
 ```javascript
 module.exports = {
   init: (api) => {
     api.addToolbarButton({
-      label: "🔄 Refresh Gaia"
+      label: "🔄 Quick Refresh"
     });
 
     api.injectScript(`
-      console.log('%c[Auto Refresh] Plugin active', 'color: lime');
+      console.log('%c[Quick Refresh] Plugin active', 'color: lime');
     `);
   }
 };
 ```
 
-  <h2>7. Quick Access to Plugins Folder</h2>
-  <p>Press <strong>Win + R</strong>, paste the following, and press Enter:</p>
+  <h2>7. Important Notes
+
+  - Plugins are loaded from `%APPDATA%\iGaia\plugins\`
+  - You do **not** need to rebuild the .exe when adding or editing plugins.
+  - The built-in Theme Editor and Plugin Manager are now part of the core application.
+  - For advanced features (custom panels, data saving, etc.), use `api.showPanel()` in future updates.
+  - Restarting iGaia is currently required to fully enable/disable plugins.
+
+  <h2>8. Quick Access</h2>
+  <p>Press <strong>Win + R</strong> and paste:</p>
   <p><code>%APPDATA%\iGaia\plugins</code></p>
 
   <hr>
 
   <footer>
-    <p>Made for the iGaia community • Happy plugin development!</p>
+    <p>Made for the iGaia community • Happy modding!</p>
   </footer>
 
 </body>
 </html>
+
+Would you like a shorter version for your main `README.md` as well?
