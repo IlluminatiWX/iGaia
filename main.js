@@ -1,40 +1,33 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { loadPlugins } = require('./plugin-loader');
 
 // ======================
-// NATIVE FLASH SETUP - IMPROVED FOR PACKAGED BUILD
+// NATIVE FLASH SETUP
 // ======================
 let pluginPath;
 
 if (app.isPackaged) {
-  // Packaged app (Portable or Installer)
-  pluginPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'plugins', 'pepflashplayer64.dll');
-  
-  // Fallback paths in case asarUnpack doesn't work perfectly
+  pluginPath = path.join(process.resourcesPath, 'plugins', 'pepflashplayer64.dll');
   if (!fs.existsSync(pluginPath)) {
-    pluginPath = path.join(process.resourcesPath, 'plugins', 'pepflashplayer64.dll');
-  }
-  if (!fs.existsSync(pluginPath)) {
-    pluginPath = path.join(process.execPath, '..', 'plugins', 'pepflashplayer64.dll');
+    pluginPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'plugins', 'pepflashplayer64.dll');
   }
 } else {
-  // Development mode (npm start)
   pluginPath = path.join(__dirname, 'plugins', 'pepflashplayer64.dll');
 }
 
-console.log('[iGaia] Running in packaged mode:', app.isPackaged);
-console.log('[iGaia] Final Flash plugin path:', pluginPath);
-console.log('[iGaia] File exists:', fs.existsSync(pluginPath));
+console.log('[iGaia] Flash plugin path:', pluginPath);
+console.log('[iGaia] Flash file exists:', fs.existsSync(pluginPath));
 
 if (fs.existsSync(pluginPath)) {
   app.commandLine.appendSwitch('ppapi-flash-path', pluginPath);
   app.commandLine.appendSwitch('ppapi-flash-version', '32.0.0.465');
   app.commandLine.appendSwitch('enable-system-flash');
   app.commandLine.appendSwitch('plugin-policy', 'allow');
-  console.log('[iGaia] ✅ Native Flash plugin switches applied');
+  console.log('[iGaia] ✅ Native Flash plugin loaded');
 } else {
-  console.error('[iGaia] ❌ Flash DLL not found! Check the path above.');
+  console.error('[iGaia] ❌ pepflashplayer64.dll not found!');
 }
 
 // Compatibility flags
@@ -49,6 +42,8 @@ const ALLOWED_ORIGINS = [
   'https://s.cdn.gaiaonline.com',
   'https://cdn.gaiaonline.com'
 ];
+
+const userPluginsDir = path.join(app.getPath('userData'), 'plugins');
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -69,16 +64,22 @@ function createWindow() {
 
   win.loadFile('index.html');
 
+  // Safety: Block non-Gaia navigation
   win.webContents.on('will-navigate', (event, url) => {
     try {
       const origin = new URL(url).origin;
       if (!ALLOWED_ORIGINS.includes(origin)) {
-        console.warn(`[iGaia] Blocked: ${url}`);
+        console.warn(`[iGaia] Blocked unsafe navigation: ${url}`);
         event.preventDefault();
       }
     } catch (e) {
       event.preventDefault();
     }
+  });
+
+  // Load plugins on startup
+  win.webContents.on('did-finish-load', () => {
+    loadPlugins(win);
   });
 }
 
@@ -95,3 +96,62 @@ ipcMain.on('window-maximize', () => {
   win.isMaximized() ? win.unmaximize() : win.maximize();
 });
 ipcMain.on('window-close', () => BrowserWindow.getFocusedWindow()?.close());
+
+// Open plugins folder
+ipcMain.on('open-plugins-folder', () => {
+  shell.openPath(userPluginsDir);
+});
+
+// Open Settings Panel (Theme Editor)
+ipcMain.on('open-settings-panel', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (win) win.webContents.send('open-settings-panel');
+});
+
+// Get list of plugins for Plugin Manager
+ipcMain.on('get-plugin-list', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (!fs.existsSync(userPluginsDir)) {
+    win.webContents.send('plugin-list', []);
+    return;
+  }
+
+  const folders = fs.readdirSync(userPluginsDir, { withFileTypes: true })
+    .filter(dirent => dirent.isDirectory())
+    .map(dirent => {
+      const manifestPath = path.join(userPluginsDir, dirent.name, 'manifest.json');
+      let name = dirent.name;
+      let version = '1.0.0';
+      let enabled = true;
+
+      if (fs.existsSync(manifestPath)) {
+        try {
+          const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+          name = manifest.name || dirent.name;
+          version = manifest.version || '1.0.0';
+        } catch (e) {}
+      }
+
+      return {
+        folder: dirent.name,
+        name: name,
+        version: version,
+        enabled: enabled
+      };
+    });
+
+  win.webContents.send('plugin-list', folders);
+});
+
+// Toggle plugin (placeholder - actual reload requires restart for now)
+ipcMain.on('toggle-plugin', (event, folderName) => {
+  console.log(`[iGaia] Toggle requested for plugin: ${folderName}`);
+  // Note: Full hot-reload of plugins is complex in Electron.
+  // For now we notify the user that a restart is needed.
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (win) {
+    win.webContents.send('plugin-alert', `Plugin "${folderName}" toggled.\n\nPlease restart iGaia for changes to take effect.`);
+  }
+});
+
+console.log('[iGaia] Main process initialized with built-in Theme Editor + Plugin Manager');
